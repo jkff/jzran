@@ -7,6 +7,7 @@
         <delete file="${bindist.file}"/>
         <delete file="${srcdist.file}"/>
         <delete file="${jar.file}"/>
+        <delete dir="${javadoc.dir}"/>
     </target>
 
     <target name="compile">
@@ -51,12 +52,21 @@
              includes="**/*"/>
     </target>
 
-    <target name="make-bindist" depends="make-jar">
+    <target name="javadoc">
+        <javadoc destdir="${javadoc.dir}">
+            <sourcepath location="${production.src.dir}"/>
+        </javadoc>
+    </target>
+
+    <target name="make-bindist" depends="make-jar,javadoc">
         <delete dir="${build.scratch.dir}" failonerror="false"/>
         <mkdir dir="${build.scratch.dir}"/>
         <mkdir dir="${build.scratch.dir}/lib"/>
         <copy todir="${build.scratch.dir}">
             <fileset file="${jar.file}"/>
+        </copy>
+        <copy todir="${build.scratch.dir}/javadoc">
+            <fileset dir="${javadoc.dir}" includes="**/*"/>
         </copy>
         <copy todir="${build.scratch.dir}/lib">
             <fileset dir="${lib.dir}" includes="**/*"/>
