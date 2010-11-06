@@ -14,6 +14,8 @@ import java.util.List;
  * from the examples to zlib 1.2.3.
  */
 class ZRan {
+    private static final ZLib Z = ZLib.INSTANCE;
+
     private static final int WINSIZE = 32768;
     private static final int CHUNK = 65536;
 
@@ -58,7 +60,7 @@ class ZRan {
         strm.opaque = null;
         strm.avail_in = 0;
         strm.next_in = null;
-        ret = ZLib.INSTANCE.inflateInit2_(strm, 47, ZLib.INSTANCE.zlibVersion(), ZLib.STREAM_SIZE);      /* automatic zlib or gzip decoding */
+        ret = Z.inflateInit2_(strm, 47, Z.zlibVersion(), ZLib.STREAM_SIZE);      /* automatic zlib or gzip decoding */
         try {
             if (ret != ZLib.Z_OK)
                 throw new IOException("zlib error: " + ret);
@@ -75,9 +77,8 @@ class ZRan {
 
                 /* get some compressed data from input file */
                 strm.avail_in = in.read(buf, 0, CHUNK);
-                if (strm.avail_in == -1) {
+                if (strm.avail_in == -1)
                     throw new IOException("zlib: data error");
-                }
                 bb.position(0);
                 bb.put(buf, 0, strm.avail_in);
                 strm.next_in = input;
@@ -94,7 +95,7 @@ class ZRan {
              update the total input and output counters */
                     totin += strm.avail_in;
                     totout += strm.avail_out;
-                    ret = ZLib.INSTANCE.inflate(strm, ZLib.Z_BLOCK);      /* return at end of block */
+                    ret = Z.inflate(strm, ZLib.Z_BLOCK);      /* return at end of block */
                     totin -= strm.avail_in;
                     totout -= strm.avail_out;
                     if (ret == ZLib.Z_NEED_DICT)
@@ -124,106 +125,83 @@ class ZRan {
             decompressedSize[0] = totout;
             return index;
         } finally {
-            ZLib.INSTANCE.inflateEnd(strm);
+            Z.inflateEnd(strm);
         }
     }
 
-    static int extract(SeekableInputStream f, List<Point> index, long offset, Memory buf, int len) throws IOException {
-        int ret, skip;
-        z_stream strm = new z_stream();
-        Point here;
-        Memory input = new Memory(CHUNK);
-        ByteBuffer bb = input.getByteBuffer(0, CHUNK);
-        Memory discard = new Memory(WINSIZE);
+    private static Memory discard = new Memory(WINSIZE);
 
-        byte[] bbuf = new byte[CHUNK];
+    static class Extractor {
+        private final byte[] bbuf = new byte[CHUNK];
+        private final Memory input = new Memory(CHUNK);
+        private final ByteBuffer bb = input.getByteBuffer(0, CHUNK);
+        private final z_stream stream;
+        private final SeekableInputStream inStream;
 
-        /* proceed only if something reasonable to do */
-        if (len < 0)
-            return 0;
+        Extractor(SeekableInputStream inStream, List<Point> index, long offset) throws IOException {
+            this.inStream = inStream;
 
-        /* find where in stream to start */
-        int j = 0;
-        ret = index.size();
-        while ((0 != --ret) && (index.get(j + 1).out <= offset))
-            j++;
-        here = index.get(j);
-        
-        /* initialize file and inflate state to start there */
-        strm.zalloc = null;
-        strm.zfree = null;
-        strm.opaque = null;
-        strm.avail_in = 0;
-        strm.next_in = null;
-        ret = ZLib.INSTANCE.inflateInit2_(strm, -15, ZLib.INSTANCE.zlibVersion(), ZLib.STREAM_SIZE);         /* raw inflate */
-        try {
-            if (ret != ZLib.Z_OK)
-                throw new IOException("zlib error: " + ret);
-            f.seek(here.in - ((here.bits != 0) ? 1 : 0));
-            if (here.bits != 0) {
-                ret = f.read();
-                if (ret == -1) {
-                    throw new IOException("End of stream");
-                }
-                ZLib.INSTANCE.inflatePrime(strm, here.bits, ret >>> (8 - here.bits));
-            }
-            ZLib.INSTANCE.inflateSetDictionary(strm, here.window, WINSIZE);
+            Point here = findIndexPoint(index, offset);
 
-            /* skip uncompressed bytes until offset reached, then satisfy request */
-            offset -= here.out;
+            z_stream strm = new z_stream();
+            strm.zalloc = null;
+            strm.zfree = null;
+            strm.opaque = null;
             strm.avail_in = 0;
-            skip = 1;                               /* while skipping to offset */
-            do {
-                /* define where to put uncompressed data, and how much */
-                if (offset == 0 && skip != 0) {          /* at offset now */
-                    strm.avail_out = len;
-                    strm.next_out = buf;
-                    skip = 0;                       /* only do this once */
-                }
-                if (offset > WINSIZE) {             /* skip WINSIZE bytes */
-                    strm.avail_out = WINSIZE;
-                    strm.next_out = discard;
-                    offset -= WINSIZE;
-                } else if (offset != 0) {             /* last skip */
-                    strm.avail_out = (int) offset;
-                    strm.next_out = discard;
-                    offset = 0;
-                }
+            strm.next_in = null;
+            int init = Z.inflateInit2_(
+                    strm, -15, Z.zlibVersion(), ZLib.STREAM_SIZE);
+            if (init != ZLib.Z_OK)
+                throw new IOException("zlib error: " + init);
+            this.stream = strm;
 
-                /* uncompress until avail_out filled, or end of stream */
-                do {
-                    if (strm.avail_in == 0) {
-                        strm.avail_in = f.read(bbuf);
-                        if (strm.avail_in == -1) {
-                            throw new IOException("End of stream");
-                        }
-                        bb.position(0);
-                        bb.put(bbuf, 0, strm.avail_in);
-                        strm.next_in = input;
-                    }
-                    ret = ZLib.INSTANCE.inflate(strm, ZLib.Z_NO_FLUSH);       /* normal inflate */
-                    if (ret == ZLib.Z_NEED_DICT)
-                        ret = ZLib.Z_DATA_ERROR;
-                    if (ret == ZLib.Z_MEM_ERROR || ret == ZLib.Z_DATA_ERROR)
-                        throw new IOException("zlib error: " + ret);
-                    if (ret == ZLib.Z_STREAM_END)
-                        break;
-                } while (strm.avail_out != 0);
+            inStream.seek(here.in - ((here.bits != 0) ? 1 : 0));
+            if (here.bits != 0) {
+                int prime = inStream.read();
+                if (prime == -1)
+                    throw new IOException("End of stream");
+                Z.inflatePrime(stream, here.bits, prime >>> (8 - here.bits));
+            }
+            Z.inflateSetDictionary(stream, here.window, WINSIZE);
 
-                /* if reach end of stream, then don't keep trying to get more */
-                if (ret == ZLib.Z_STREAM_END)
-                    break;
+            for (long rem = offset - here.out; rem > 0; ) {
+                rem -= extract(discard, (rem > WINSIZE) ? WINSIZE : (int) rem);
+            }
+        }
 
-                /* do until offset reached and requested data read, or stream ends */
-            } while (skip != 0);
+        public void close() {
+            Z.inflateEnd(stream);
+        }
 
-            /* compute number of uncompressed bytes read after offset */
-            ret = (skip != 0) ? 0 : len - strm.avail_out;
+        public int extract(Memory buf, int len) throws IOException {
+            stream.next_out = buf;
+            stream.avail_out = len;
+            if (stream.avail_in == 0) {
+                int nr = inStream.read(bbuf);
+                if (nr == -1)
+                    throw new IOException("End of stream");
+                bb.position(0);
+                bb.put(bbuf, 0, nr);
+                stream.next_in = input;
+                stream.avail_in = nr;
+            }
+            int ret = Z.inflate(stream, ZLib.Z_NO_FLUSH);       /* normal inflate */
+            switch (ret) {
+                case ZLib.Z_NEED_DICT:
+                case ZLib.Z_MEM_ERROR:
+                case ZLib.Z_DATA_ERROR:
+                    throw new IOException("zlib error: " + ret);
+            }
+            return len - stream.avail_out;
+        }
 
-            return ret;
-        } finally {
-            /* clean up and return bytes read or error */
-            ZLib.INSTANCE.inflateEnd(strm);
+        private static Point findIndexPoint(List<Point> index, long offset) {
+            for (int j = 0; j < index.size() - 1; ++j) {
+                if (index.get(j + 1).out > offset)
+                    return index.get(j);
+            }
+            return index.get(index.size() - 1);
         }
     }
+
 }

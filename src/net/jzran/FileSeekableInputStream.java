@@ -40,21 +40,6 @@ public class FileSeekableInputStream extends SeekableInputStream {
         raf.close();
     }
 
-    @Override
-    public void mark(int readlimit) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void reset() throws IOException {
-        raf.seek(0);
-    }
-
-    @Override
-    public boolean markSupported() {
-        return false;
-    }
-
     public void seek(long offset) throws IOException {
         raf.seek(offset);
     }

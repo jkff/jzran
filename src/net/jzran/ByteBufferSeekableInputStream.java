@@ -65,22 +65,6 @@ public class ByteBufferSeekableInputStream extends SeekableInputStream {
         isClosed = true;
     }
 
-    @Override
-    public void mark(int readlimit) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void reset() throws IOException {
-        ensureOpen();
-        buf.rewind();
-    }
-
-    @Override
-    public boolean markSupported() {
-        return false;
-    }
-
     public void seek(long offset) throws IOException {
         ensureOpen();
         if(offset > Integer.MAX_VALUE) {

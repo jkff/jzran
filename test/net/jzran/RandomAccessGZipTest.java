@@ -32,8 +32,8 @@ public class RandomAccessGZipTest {
         testCorrectness(testPair.buf, new FileSeekableInputStream(new RandomAccessFile(tmp, "r")));
     }
 
-    private void testCorrectness(byte[] buf, SeekableInputStream basis) throws Exception {
-        RandomAccessGZip.Index index = RandomAccessGZip.index(basis, 1048576);
+    private void testCorrectness(byte[] buf, SeekableInputStream sis) throws Exception {
+        RandomAccessGZip.Index index = RandomAccessGZip.index(sis, 1048576);
 
         ByteArrayOutputStream indexData = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(indexData);
@@ -43,15 +43,27 @@ public class RandomAccessGZipTest {
         byte[] indexBytes = indexData.toByteArray();
 
         index = (RandomAccessGZip.Index) new ObjectInputStream(new ByteArrayInputStream(indexBytes)).readObject();
+        index.open(sis);
 
-        assertEquals(buf.length, index.decompressedSize());
+        assertEquals(buf.length, index.length());
 
         Random r = new Random(56738138L);
         for(int i = 0; i < 100; ++i) {
             int origin = r.nextInt(buf.length);
-            byte[] dest = new byte[Math.min(100, buf.length - origin)];
-            int n = index.read(basis, origin, dest, 0, dest.length);
-            for(int j = 0; j < Math.min(n, dest.length); ++j) {
+
+            index.seek(origin);
+
+            byte[] dest = new byte[Math.min(135763, buf.length - origin)];
+
+            int rem = dest.length;
+            int offset = 0;
+            while(rem > 0) {
+                int n = index.read(dest, offset, rem);
+                rem -= n;
+                offset += n;
+            }
+
+            for(int j = 0; j < dest.length; ++j) {
                 assertEquals(dest[j], buf[origin+j]);
             }
         }

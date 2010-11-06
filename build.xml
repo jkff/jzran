@@ -2,6 +2,10 @@
 <project name="jzran" default="all">
     <property file="build.properties"/>
 
+    <path id="project.classpath">
+        <fileset dir="${lib.dir}" includes="**/*.jar"/>
+    </path>
+
     <target name="clean">
         <delete dir="${build.dir}"/>
         <delete file="${bindist.file}"/>
@@ -12,26 +16,25 @@
 
     <target name="compile">
         <mkdir dir="${production.classes.dir}"/>
-        <javac srcdir="${production.src.dir}" destdir="${production.classes.dir}" source="1.5" target="1.5">
-            <classpath>
-                <fileset dir="${lib.dir}" includes="**/*.jar"/>
-            </classpath>
-        </javac>
+        <javac srcdir="${production.src.dir}"
+               destdir="${production.classes.dir}"
+               classpathref="project.classpath"
+               source="1.5"
+               target="1.5"/>
     </target>
 
     <target name="compile-tests">
         <mkdir dir="${test.classes.dir}"/>
-        <javac srcdir="${test.src.dir}" destdir="${test.classes.dir}" source="1.5" target="1.5">
-            <classpath>
-                <fileset dir="${lib.dir}" includes="**/*.jar"/>
-            </classpath>
-            <sourcepath location="${production.src.dir}"/>
-        </javac>
+        <javac srcdir="${test.src.dir}"
+               destdir="${test.classes.dir}"
+               sourcepath="${production.src.dir}"
+               classpathref="project.classpath"
+               source="1.5"
+               target="1.5"/>
     </target>
 
     <target name="test" depends="compile-tests">
         <junit printsummary="true"
-               logfailedtests="true"
                showoutput="true">
             <classpath>
                 <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -55,6 +58,7 @@
     <target name="javadoc">
         <javadoc destdir="${javadoc.dir}">
             <sourcepath location="${production.src.dir}"/>
+            <classpath refid="project.classpath"/>
         </javadoc>
     </target>
 

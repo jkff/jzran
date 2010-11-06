@@ -73,22 +73,6 @@ public class ByteArraySeekableInputStream extends SeekableInputStream {
         isClosed = true;
     }
 
-    @Override
-    public void mark(int readlimit) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void reset() throws IOException {
-        ensureOpen();
-        pos = offset;
-    }
-
-    @Override
-    public boolean markSupported() {
-        return false;
-    }
-
     public void seek(long seekOffset) throws IOException {
         ensureOpen();
         if(seekOffset > len) {
