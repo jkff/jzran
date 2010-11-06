@@ -6,6 +6,7 @@
         <delete dir="${build.dir}"/>
         <delete file="${bindist.file}"/>
         <delete file="${srcdist.file}"/>
+        <delete file="${jar.file}"/>
     </target>
 
     <target name="compile">
