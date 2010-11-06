@@ -55,7 +55,7 @@
         <mkdir dir="${build.scratch.dir}"/>
         <mkdir dir="${build.scratch.dir}/lib"/>
         <copy todir="${build.scratch.dir}">
-            <file file="${jar.file}"/>
+            <fileset file="${jar.file}"/>
         </copy>
         <copy todir="${build.scratch.dir}/lib">
             <fileset dir="${lib.dir}" includes="**/*"/>
@@ -69,15 +69,16 @@
         <mkdir dir="${build.scratch.dir}/lib"/>
         <copy todir="${build.scratch.dir}">
             <fileset dir=".">
-                <includesfile name="build.xml"/>
-                <includesfile name="build.properties"/>
-                <includesfile name="jzran.iml"/>
+                <include name="build.xml"/>
+                <include name="build.properties"/>
+                <include name="jzran.iml"/>
                 <include name=".idea/**/*"/>
                 <include name="${lib.dir}/**/*"/>
                 <include name="${production.src.dir}/**/*"/>
                 <include name="${test.src.dir}/**/*"/>
             </fileset>
         </copy>
+        <zip basedir="${build.scratch.dir}" includes="**/*" destfile="${srcdist.file}"/>
     </target>
 
     <target name="all" depends="compile,test,make-bindist,make-srcdist"/>
