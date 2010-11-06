@@ -1,7 +1,6 @@
 package net.jzran;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 
 public class ByteArraySeekableInputStream extends SeekableInputStream {
     private final byte[] buf;
@@ -26,27 +25,34 @@ public class ByteArraySeekableInputStream extends SeekableInputStream {
 
     @Override
     public int read() throws IOException {
+        ensureOpen();
         if(pos == offset + len)
             return -1;
-        return buf[pos];
+        int oldPos = pos;
+        pos++;
+        return buf[oldPos];
     }
 
     @Override
     public int read(byte[] b) throws IOException {
+        ensureOpen();
         return read(b, 0, b.length);
     }
 
     @Override
     public int read(byte[] b, int off, int readLen) throws IOException {
+        ensureOpen();
         int rem = Math.min(readLen, offset + len - pos);
         if(rem == 0)
             return -1;
         System.arraycopy(buf, pos, b, off, rem);
+        pos += rem;
         return rem;
     }
 
     @Override
     public long skip(long n) throws IOException {
+        ensureOpen();
         if(n < 0)
             return 0;
         int rem = Math.min(
@@ -58,6 +64,7 @@ public class ByteArraySeekableInputStream extends SeekableInputStream {
 
     @Override
     public int available() throws IOException {
+        ensureOpen();
         return offset + len - pos;
     }
 
@@ -73,6 +80,7 @@ public class ByteArraySeekableInputStream extends SeekableInputStream {
 
     @Override
     public void reset() throws IOException {
+        ensureOpen();
         pos = offset;
     }
 
@@ -82,6 +90,7 @@ public class ByteArraySeekableInputStream extends SeekableInputStream {
     }
 
     public void seek(long seekOffset) throws IOException {
+        ensureOpen();
         if(seekOffset > len) {
             throw new IllegalArgumentException(
                     "Offset beyond end of buffer: " + seekOffset + " > " + len);

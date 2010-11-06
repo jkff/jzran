@@ -4,9 +4,6 @@ import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 
-/**
- * Created on: 27.03.2010 19:29:34
- */
 public class z_stream extends Structure {
     public Pointer next_in;
     public int avail_in;

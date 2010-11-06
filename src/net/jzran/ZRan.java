@@ -4,7 +4,7 @@ import com.sun.jna.Memory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,11 +17,11 @@ class ZRan {
     private static final int WINSIZE = 32768;
     private static final int CHUNK = 65536;
 
-    static class Point {
-        long out;
-        long in;
-        int bits;
-        byte[] window;
+    static class Point implements Serializable {
+        private long out;
+        private long in;
+        private int bits;
+        private byte[] window;
 
         private Point(long out, long in, int bits) {
             this.out = out;
