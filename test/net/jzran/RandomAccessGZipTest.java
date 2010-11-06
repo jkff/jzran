@@ -33,11 +33,7 @@ public class RandomAccessGZipTest {
     }
 
     private void testCorrectness(byte[] buf, SeekableInputStream basis) throws Exception {
-        RandomAccessGZip.Index index = RandomAccessGZip.index(basis, 1048576, new ProgressListener<Long>() {
-            public boolean reportProgress(Long progress) {
-                return true;
-            }
-        });
+        RandomAccessGZip.Index index = RandomAccessGZip.index(basis, 1048576);
 
         ByteArrayOutputStream indexData = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(indexData);

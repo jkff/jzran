@@ -58,4 +58,8 @@ public class FileSeekableInputStream extends SeekableInputStream {
     public void seek(long offset) throws IOException {
         raf.seek(offset);
     }
+
+    public long length() throws IOException {
+        return raf.length();
+    }
 }

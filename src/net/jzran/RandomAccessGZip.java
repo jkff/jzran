@@ -13,8 +13,17 @@ import java.util.List;
  */
 public class RandomAccessGZip {
     public interface Index extends Serializable {
+        /**
+         * Given the compressed stream, read 'len' bytes starting at 'origin',
+         * write them to 'buf' starting from 'offset'.
+         *
+         * @return How many bytes have actually been read
+         */
         int read(SeekableInputStream f, long origin, byte[] buf, int offset, int len) throws IOException;
 
+        /**
+         * How big was the original (decompressed) file.
+         */
         long decompressedSize();
     }
 
@@ -64,10 +73,12 @@ public class RandomAccessGZip {
     }
 
     /**
-     * Use this method to create an index :)
+     * Use this method to create an index and monitor progress :)
      *
      * @param span A "checkpoint" will take place every span bytes of
      *   decompressed data. A checkpoint takes about 32kb.
+     * @param listener It will be frequently notified of how many bytes of
+     *   compressed input have been read so far.
      * @return an index, or null if progress listener returns false
      *   along the way ("cancel").
      */
@@ -75,5 +86,15 @@ public class RandomAccessGZip {
         long[] holder = {0L};
         List<ZRan.Point> idx = ZRan.build_index(input, span, holder, listener);
         return idx == null ? null : new IndexImpl(idx, holder[0]);
+    }
+
+    /**
+     * Use this method to create an index :)
+     *
+     * @param span A "checkpoint" will take place every span bytes of
+     *   decompressed data. A checkpoint takes about 32kb.
+     */
+    public static Index index(InputStream input, long span) throws IOException {
+        return index(input, span, new NullProgressListener());
     }
 }

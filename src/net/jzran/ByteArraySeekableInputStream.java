@@ -98,4 +98,8 @@ public class ByteArraySeekableInputStream extends SeekableInputStream {
         // Can't be more than Integer.MAX_VALUE because offset + len is less.
         pos = (int)(offset + seekOffset);
     }
+
+    public long length() throws IOException {
+        return len;
+    }
 }

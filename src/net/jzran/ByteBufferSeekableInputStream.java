@@ -1,8 +1,6 @@
 package net.jzran;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 
 /**
@@ -89,5 +87,9 @@ public class ByteBufferSeekableInputStream extends SeekableInputStream {
             throw new IllegalArgumentException("Offset too large: " + offset + " > " + Integer.MAX_VALUE);
         }
         buf.position((int)offset);
+    }
+
+    public long length() throws IOException {
+        return buf.limit();
     }
 }
